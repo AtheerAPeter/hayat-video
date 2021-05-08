@@ -19,7 +19,7 @@ const Room = () => {
 
   const setup = () => {
     const peer = new Peer();
-    let socket = socketIOClient("http://localhost:4000", {
+    let socket = socketIOClient("https://hayat-node.herokuapp.com/", {
       transports: ["websocket", "polling", "flashsocket"],
     });
 
