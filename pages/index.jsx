@@ -20,7 +20,7 @@ const Home = () => {
       redirect: "follow",
     };
 
-    fetch("http://localhost:4000", requestOptions)
+    fetch("https://hayat-node.herokuapp.com/", requestOptions)
       .then((response) => response.json())
       .then((result) => {
         router.push(`/room/${result.roomId}`);
