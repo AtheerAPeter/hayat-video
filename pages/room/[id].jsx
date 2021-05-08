@@ -29,7 +29,7 @@ const Room = () => {
     });
 
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: false })
+      .getUserMedia({ video: true, audio: true })
       .then((stream) => {
         peer.on("call", (call) => {
           console.log(call);
