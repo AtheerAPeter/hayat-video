@@ -1,0 +1,126 @@
+*,
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+$main: #63d367;
+$textColor: #9e9d9d;
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  @media screen and (max-width: 1200px) {
+    max-width: auto;
+    width: 100%;
+    padding: 0 10px;
+  }
+}
+
+.call-screen {
+  background-color: #000;
+  overflow-y: scroll;
+
+  .close-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+  }
+  .videos {
+    display: grid;
+    list-style-type: none;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    height: 100vh;
+    width: 100vw;
+
+    li {
+      background-color: #444;
+      border: 2px solid #666;
+      min-height: 250px;
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+.home {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  height: 100vh;
+  .content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+
+    .logo {
+      margin-top: 20px;
+
+      width: fit-content;
+      margin-bottom: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      img {
+        margin-bottom: 10px;
+      }
+      h1 {
+        color: $main;
+      }
+    }
+    .controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      .new {
+        border-radius: 20px;
+      }
+      .label {
+        color: $textColor;
+        margin: 25px 0 5px 0;
+      }
+      .join-container {
+        display: flex;
+        a,
+        area,
+        [role="button"],
+        input:not([type="range"]),
+        label,
+        select,
+        summary,
+        textarea {
+          border-radius: 20px;
+        }
+        .arrow {
+          border-radius: 1000px;
+          width: 50px;
+          margin-left: 10px;
+        }
+      }
+    }
+    .footer {
+      padding-bottom: 50px;
+      display: flex;
+      p {
+        color: $textColor;
+        margin-right: 5px;
+      }
+      .contact {
+        color: $main;
+      }
+    }
+  }
+}
