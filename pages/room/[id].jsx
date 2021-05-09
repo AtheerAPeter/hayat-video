@@ -16,8 +16,8 @@ const Room = () => {
   const roomid = router.query.id;
 
   useEffect(() => {
-    setup();
-    // handleRecord();
+    // setup();
+    handleRecord();
   }, [router]);
 
   const setup = () => {
