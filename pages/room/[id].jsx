@@ -43,11 +43,6 @@ const Room = () => {
         if (roomid) socket.emit("join-room", roomid, id);
       });
 
-      peer.on("open", (id) => {
-        console.log("peer open", roomid);
-        if (roomid) socket.emit("join-room", roomid, id);
-      });
-
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
@@ -66,6 +61,7 @@ const Room = () => {
       console.log("peer open", roomid);
       if (roomid) socket.emit("join-room", roomid, id);
     });
+
     navigator.mediaDevices
       .getDisplayMedia({
         video: {
@@ -108,6 +104,7 @@ const Room = () => {
 
     // when new user connects we call the reverse of the first
     socket.on("user-connected", (userId) => {
+      router.reload();
       console.log("conntectedd", userId);
       const call = peer.call(userId, stream);
       // const video = document.createElement("video");
