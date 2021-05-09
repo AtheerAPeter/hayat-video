@@ -22,7 +22,7 @@ const Room = () => {
 
   const [camera, setCamera] = useState(true);
   const [stream, setStream] = useState();
-  const [streams, setStreams] = useState();
+  const [streams, setStreams] = useState([]);
 
   useEffect(() => {
     if (camera) {
