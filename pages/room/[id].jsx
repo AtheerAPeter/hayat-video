@@ -14,71 +14,54 @@ const Room = () => {
   const videoRef = useRef(null);
   const videoRef2 = useRef(null);
   const roomid = router.query.id;
+  const [peer, setPeer] = useState();
+  const [socket, setSocket] = useState(() =>
+    socketIOClient("https://hayat-node.herokuapp.com/", {
+      transports: ["websocket", "polling", "flashsocket"],
+    })
+  );
+
+  const [camera, setCamera] = useState(true);
+  useEffect(() => {
+    if (camera) {
+      setup();
+    } else {
+      handleRecord();
+    }
+  }, [camera]);
 
   useEffect(() => {
-    // setup();
-    handleRecord();
+    setPeer(new Peer());
+    setup();
+    // handleRecord();
   }, [router]);
 
   const setup = () => {
-    const peer = new Peer();
-    let socket = socketIOClient("https://hayat-node.herokuapp.com/", {
-      transports: ["websocket", "polling", "flashsocket"],
-    });
-
-    peer.on("open", (id) => {
-      console.log("peer open", roomid);
-      if (roomid) socket.emit("join-room", roomid, id);
-    });
-
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        peer.on("call", (call) => {
-          console.log(call);
-          call.answer(stream);
-          call.on("stream", (userVideoStream) => {
-            videoRef2.current.srcObject = userVideoStream;
-            videoRef2.current.play();
-            console.log("new stream");
-          });
-        });
-
-        let video = videoRef.current;
-        video.srcObject = stream;
-        video.play();
-
-        socket.on("user-connected", (userId) => {
-          console.log("conntectedd", userId);
-          const call = peer.call(userId, stream);
-          // const video = document.createElement("video");
-          call.on("stream", (userVideoStream) => {
-            // addVideoStream(video, userVideoStream);
-            videoRef2.current.srcObject = userVideoStream;
-            videoRef2.current.play();
-            console.log("new stream");
-          });
-          call.on("close", () => {
-            console.log("closed");
-            // video.remove();
-          });
-
-          // peers[userId] = call;
-        });
-      })
-      .catch((err) => {
-        console.error("error:", err);
+    if (peer && socket) {
+      peer.on("open", (id) => {
+        console.log("peer open", roomid);
+        if (roomid) socket.emit("join-room", roomid, id);
       });
 
-    return () => socket.disconnect();
+      peer.on("open", (id) => {
+        console.log("peer open", roomid);
+        if (roomid) socket.emit("join-room", roomid, id);
+      });
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          handleStream(stream);
+        })
+        .catch((err) => {
+          console.error("error:", err);
+        });
+
+      return () => socket.disconnect();
+    }
   };
 
   const handleRecord = async () => {
-    const peer = new Peer();
-    let socket = socketIOClient("https://hayat-node.herokuapp.com/", {
-      transports: ["websocket", "polling", "flashsocket"],
-    });
-
     peer.on("open", (id) => {
       console.log("peer open", roomid);
       if (roomid) socket.emit("join-room", roomid, id);
@@ -95,37 +78,7 @@ const Room = () => {
         },
       })
       .then((stream) => {
-        peer.on("call", (call) => {
-          console.log(call);
-          call.answer(stream);
-          call.on("stream", (userVideoStream) => {
-            videoRef2.current.srcObject = userVideoStream;
-            videoRef2.current.play();
-            console.log("new stream");
-          });
-        });
-
-        let video = videoRef.current;
-        video.srcObject = stream;
-        video.play();
-
-        socket.on("user-connected", (userId) => {
-          console.log("conntectedd", userId);
-          const call = peer.call(userId, stream);
-          // const video = document.createElement("video");
-          call.on("stream", (userVideoStream) => {
-            // addVideoStream(video, userVideoStream);
-            videoRef2.current.srcObject = userVideoStream;
-            videoRef2.current.play();
-            console.log("new stream");
-          });
-          call.on("close", () => {
-            console.log("closed");
-            // video.remove();
-          });
-
-          // peers[userId] = call;
-        });
+        handleStream(stream);
       });
 
     // const mediaRecorder = new MediaRecorder(stream, {
@@ -134,6 +87,43 @@ const Room = () => {
 
     // console.log(mediaRecorder.ondataavailable);
     // // mediaRecorder.start();
+  };
+
+  const handleStream = (stream) => {
+    // when getting a call
+    peer.on("call", (call) => {
+      console.log(call);
+      call.answer(stream);
+      call.on("stream", (userVideoStream) => {
+        videoRef2.current.srcObject = userVideoStream;
+        videoRef2.current.play();
+        console.log("new stream");
+      });
+    });
+
+    //set my video
+    let video = videoRef.current;
+    video.srcObject = stream;
+    video.play();
+
+    // when new user connects we call the reverse of the first
+    socket.on("user-connected", (userId) => {
+      console.log("conntectedd", userId);
+      const call = peer.call(userId, stream);
+      // const video = document.createElement("video");
+      call.on("stream", (userVideoStream) => {
+        // addVideoStream(video, userVideoStream);
+        videoRef2.current.srcObject = userVideoStream;
+        videoRef2.current.play();
+        console.log("new stream");
+      });
+      call.on("close", () => {
+        console.log("closed");
+        // video.remove();
+      });
+
+      // peers[userId] = call;
+    });
   };
 
   return (
@@ -160,12 +150,14 @@ const Room = () => {
             }}
           />
         </Tooltip>
-        <Tooltip title="Present Screen">
+        <Tooltip title={camera ? "Present Screen" : "Stop Presenting"}>
           <Button
             className="btn"
             size={"large"}
             type="primary"
-            onClick={handleRecord}
+            onClick={() => {
+              setCamera(!camera);
+            }}
             icon={<MdScreenShare />}
           ></Button>
         </Tooltip>
