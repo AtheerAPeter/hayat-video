@@ -12,7 +12,6 @@ import { MdScreenShare } from "react-icons/md";
 const Room = () => {
   const router = useRouter();
   const videoRef = useRef(null);
-  const videoRef2 = useRef(null);
   const roomid = router.query.id;
   const [peer, setPeer] = useState();
   const [socket, setSocket] = useState(() =>
@@ -22,6 +21,9 @@ const Room = () => {
   );
 
   const [camera, setCamera] = useState(true);
+  const [stream, setStream] = useState();
+  const [streams, setStreams] = useState();
+
   useEffect(() => {
     if (camera) {
       setup();
@@ -44,7 +46,10 @@ const Room = () => {
       });
 
       navigator.mediaDevices
-        .getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
+        .getUserMedia({
+          video: { width: 1280, height: 720, frameRate: { max: 30 } },
+          audio: true,
+        })
         .then((stream) => {
           handleStream(stream);
         })
@@ -86,14 +91,13 @@ const Room = () => {
   };
 
   const handleStream = (stream) => {
+    setStream(stream);
     // when getting a call
     peer.on("call", (call) => {
       console.log(call);
       call.answer(stream);
       call.on("stream", (userVideoStream) => {
-        videoRef2.current.srcObject = userVideoStream;
-        videoRef2.current.play();
-        console.log("new stream");
+        setStreams([...streams, userVideoStream]);
       });
     });
 
@@ -106,12 +110,9 @@ const Room = () => {
     socket.on("user-connected", (userId) => {
       console.log("conntectedd", userId);
       const call = peer.call(userId, stream);
-      // const video = document.createElement("video");
+
       call.on("stream", (userVideoStream) => {
-        // addVideoStream(video, userVideoStream);
-        videoRef2.current.srcObject = userVideoStream;
-        videoRef2.current.play();
-        console.log("new stream");
+        setStreams([...streams, userVideoStream]);
       });
       call.on("close", () => {
         console.log("closed");
@@ -142,6 +143,11 @@ const Room = () => {
             }
             size={"large"}
             onClick={() => {
+              stream.getTracks().forEach(function (track) {
+                if (track.readyState == "live") {
+                  track.stop();
+                }
+              });
               router.replace("/");
             }}
           />
@@ -162,10 +168,12 @@ const Room = () => {
         <li>
           <video ref={videoRef} muted className="video" />
         </li>
-        <li>
-          {" "}
-          <video ref={videoRef2} className="video" />
-        </li>
+        {streams &&
+          streams.map((vid) => (
+            <li>
+              <Video stream={vid} />
+            </li>
+          ))}
       </ul>
     </div>
   );
@@ -180,5 +188,5 @@ const Video = ({ stream }) => {
     if (localVideo.current) localVideo.current.srcObject = stream;
   }, [stream, localVideo]);
 
-  return <video style={{ width: "100%" }} ref={localVideo} autoPlay />;
+  return <video className="video" ref={localVideo} autoPlay />;
 };
