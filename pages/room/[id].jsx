@@ -86,7 +86,7 @@ const Room = () => {
       </Tooltip>
       <ul className="videos">
         <li>
-          <video style={{ width: "100%" }} ref={videoRef} />
+          <video style={{ width: "100%" }} ref={videoRef} muted />
         </li>
         <li>
           {" "}
