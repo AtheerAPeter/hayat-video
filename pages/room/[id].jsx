@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import { CloseOutlined } from "@ant-design/icons";
 import { useEffect, useState, useRef } from "react";
 import socketIOClient from "socket.io-client";
+import { FundProjectionScreenOutlined } from "@ant-design/icons";
+import { MdScreenShare } from "react-icons/md";
 
 // var Peer = null;
 // if (typeof window !== "undefined") Peer = require("peerjs");
@@ -15,6 +17,7 @@ const Room = () => {
 
   useEffect(() => {
     setup();
+    // handleRecord();
   }, [router]);
 
   const setup = () => {
@@ -70,36 +73,110 @@ const Room = () => {
     return () => socket.disconnect();
   };
 
+  const handleRecord = async () => {
+    const peer = new Peer();
+    let socket = socketIOClient("https://hayat-node.herokuapp.com/", {
+      transports: ["websocket", "polling", "flashsocket"],
+    });
+
+    peer.on("open", (id) => {
+      console.log("peer open", roomid);
+      if (roomid) socket.emit("join-room", roomid, id);
+    });
+    navigator.mediaDevices
+      .getDisplayMedia({
+        video: {
+          cursor: "always",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        },
+      })
+      .then((stream) => {
+        peer.on("call", (call) => {
+          console.log(call);
+          call.answer(stream);
+          call.on("stream", (userVideoStream) => {
+            videoRef2.current.srcObject = userVideoStream;
+            videoRef2.current.play();
+            console.log("new stream");
+          });
+        });
+
+        let video = videoRef.current;
+        video.srcObject = stream;
+        video.play();
+
+        socket.on("user-connected", (userId) => {
+          console.log("conntectedd", userId);
+          const call = peer.call(userId, stream);
+          // const video = document.createElement("video");
+          call.on("stream", (userVideoStream) => {
+            // addVideoStream(video, userVideoStream);
+            videoRef2.current.srcObject = userVideoStream;
+            videoRef2.current.play();
+            console.log("new stream");
+          });
+          call.on("close", () => {
+            console.log("closed");
+            // video.remove();
+          });
+
+          // peers[userId] = call;
+        });
+      });
+
+    // const mediaRecorder = new MediaRecorder(stream, {
+    //   mimeType: "video/webm; codecs=vp9",
+    // });
+
+    // console.log(mediaRecorder.ondataavailable);
+    // // mediaRecorder.start();
+  };
+
   return (
     <div className="call-screen">
-      <Tooltip title="End Call">
-        <Button
-          className="close-btn"
-          danger
-          type="primary"
-          icon={
-            <CloseOutlined
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                fontSize: 25,
-              }}
-            />
-          }
-          size={"large"}
-          onClick={() => {
-            router.replace("/");
-          }}
-        />
-      </Tooltip>
+      <div className="controls">
+        <Tooltip title="End Call">
+          <Button
+            className="btn"
+            danger
+            type="primary"
+            icon={
+              <CloseOutlined
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 25,
+                }}
+              />
+            }
+            size={"large"}
+            onClick={() => {
+              router.replace("/");
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Present Screen">
+          <Button
+            className="btn"
+            size={"large"}
+            type="primary"
+            onClick={handleRecord}
+            icon={<MdScreenShare />}
+          ></Button>
+        </Tooltip>
+      </div>
       <ul className="videos">
         <li>
-          <video style={{ width: "100%" }} ref={videoRef} muted />
+          <video ref={videoRef} muted className="video" />
         </li>
         <li>
           {" "}
-          <video style={{ width: "100%" }} ref={videoRef2} />
+          <video ref={videoRef2} className="video" />
         </li>
       </ul>
     </div>

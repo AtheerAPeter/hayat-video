@@ -29,20 +29,29 @@ $textColor: #9e9d9d;
   background-color: #000;
   overflow-y: scroll;
   position: relative;
-
-  .close-btn {
+  .controls {
     position: fixed;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 50%;
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: center;
-    height: 50px;
-    width: 50px;
+    width: 100%;
+
     z-index: 10;
+    width: 200px;
+    .btn {
+      border-radius: 50%;
+      height: 50px;
+      width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
   }
+
   .videos {
     display: grid;
     list-style-type: none;
@@ -58,6 +67,10 @@ $textColor: #9e9d9d;
       display: flex;
       align-items: center;
       transition: 0.5s;
+      .video {
+        height: 100%;
+        width: 100%;
+      }
     }
   }
 }
