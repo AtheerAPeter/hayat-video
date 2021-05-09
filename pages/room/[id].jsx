@@ -77,7 +77,16 @@ const Room = () => {
           className="close-btn"
           danger
           type="primary"
-          icon={<CloseOutlined />}
+          icon={
+            <CloseOutlined
+              style={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                fontSize: 25,
+              }}
+            />
+          }
           size={"large"}
           onClick={() => {
             router.replace("/");
