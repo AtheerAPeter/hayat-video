@@ -28,6 +28,7 @@ $textColor: #9e9d9d;
 .call-screen {
   background-color: #000;
   overflow-y: scroll;
+  position: relative;
 
   .close-btn {
     position: fixed;
@@ -35,6 +36,12 @@ $textColor: #9e9d9d;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;
+    width: 50px;
+    z-index: 10;
   }
   .videos {
     display: grid;
@@ -42,6 +49,7 @@ $textColor: #9e9d9d;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     height: 100vh;
     width: 100vw;
+    position: relative;
 
     li {
       background-color: #444;
@@ -49,6 +57,7 @@ $textColor: #9e9d9d;
       min-height: 250px;
       display: flex;
       align-items: center;
+      transition: 0.5s;
     }
   }
 }

@@ -29,7 +29,7 @@ const Room = () => {
     });
 
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
+      .getUserMedia({ video: true, audio: false })
       .then((stream) => {
         peer.on("call", (call) => {
           console.log(call);
@@ -86,11 +86,14 @@ const Room = () => {
       </Tooltip>
       <ul className="videos">
         <li>
-          <video style={{ width: "100%" }} ref={videoRef} />
+          <video
+            className="video"
+            style={{ width: "100%", height: "100%" }}
+            ref={videoRef}
+          />
         </li>
-        <li>
-          {" "}
-          <video style={{ width: "100%" }} ref={videoRef2} />
+        <li className="video">
+          <video style={{ width: "100%", height: "100%" }} ref={videoRef2} />
         </li>
       </ul>
     </div>
