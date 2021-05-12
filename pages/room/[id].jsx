@@ -23,7 +23,7 @@ const Room = () => {
   const [participants, setParticipants] = useState(false);
   const [user, setUser] = useState();
   const [socket, setSocket] = useState(() =>
-    socketIOClient("http://localhost:4000", {
+    socketIOClient("https://zoom-clone-back.herokuapp.com/", {
       transports: ["websocket", "polling", "flashsocket"],
     })
   );
