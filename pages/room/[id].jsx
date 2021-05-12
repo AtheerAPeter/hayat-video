@@ -22,7 +22,7 @@ const Room = () => {
   const roomid = router.query.id;
   const [peer, setPeer] = useState();
   const [socket, setSocket] = useState(() =>
-    socketIOClient("http://localhost:4000", {
+    socketIOClient("https://zoom-clone-back.herokuapp.com/", {
       transports: ["websocket", "polling", "flashsocket"],
     })
   );
