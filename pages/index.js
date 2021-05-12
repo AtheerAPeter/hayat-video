@@ -24,7 +24,7 @@ const Home = () => {
       redirect: "follow",
     };
 
-    fetch("http://localhost:4000/v1/uuid", requestOptions)
+    fetch("hhttps://zoom-clone-back.herokuapp.com/v1/uuid", requestOptions)
       .then((response) => response.json())
       .then((result) => {
         setLoading(false);
