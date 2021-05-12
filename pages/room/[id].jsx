@@ -1,273 +1,302 @@
-import { Button, Tooltip } from "antd";
-import { useRouter } from "next/router";
-import { CloseOutlined } from "@ant-design/icons";
-import { useEffect, useState, useRef } from "react";
-import socketIOClient, { io } from "socket.io-client";
-import { FundProjectionScreenOutlined } from "@ant-design/icons";
-import { MdScreenShare } from "react-icons/md";
+import { useEffect, useRef, useState } from "react";
 import {
-  FaVideo,
+  FaCommentAlt,
+  FaPaperPlane,
   FaMicrophone,
-  FaMicrophoneSlash,
+  FaVideo,
+  FaUserPlus,
+  FaUserFriends,
   FaVideoSlash,
+  FaMicrophoneSlash,
 } from "react-icons/fa";
-import { IoClose } from "react-icons/io5";
-
-// var Peer = null;
-// if (typeof window !== "undefined") Peer = require("peerjs");
+import { useRouter } from "next/router";
+import Cookies from "js-cookie";
+import socketIOClient from "socket.io-client";
+import { message } from "antd";
 
 const Room = () => {
-  const router = useRouter();
-  const videoRef = useRef(null);
-  const roomid = router.query.id;
-  const [peer, setPeer] = useState();
+  const Router = useRouter();
+  const roomId = Router.query.id;
+  const videoRef = useRef();
+
+  const [chats, setChats] = useState(false);
+  const [participants, setParticipants] = useState(false);
+  const [user, setUser] = useState();
   const [socket, setSocket] = useState(() =>
-    socketIOClient("https://zoom-clone-back.herokuapp.com/", {
+    socketIOClient("http://localhost:4000", {
       transports: ["websocket", "polling", "flashsocket"],
     })
   );
-
-  const [camera, setCamera] = useState(true);
-  const [stream, setStream] = useState();
-  const [streams, setStreams] = useState([]);
-  const [myId, setMyId] = useState();
-  const [isMic, setIsMic] = useState(true);
+  const [peer, setPeer] = useState();
+  const [myID, setMyID] = useState();
+  const [myStream, setMyStream] = useState();
   const [isVideo, setIsVideo] = useState(true);
-  useEffect(() => {
-    stream &&
-      stream.getTracks().forEach(function (track) {
-        if (track.readyState == "live") {
-          track.stop();
-        }
-      });
-    if (camera) {
-      setup();
-    } else {
-      handleRecord();
-    }
-  }, [camera]);
-
-  useEffect(() => {
-    console.log(streams);
-  }, [streams]);
+  const [isMic, setIsMic] = useState(true);
+  const gridRef = useRef();
+  const [streams, setStreams] = useState([]);
 
   useEffect(() => {
     setPeer(new Peer());
-    setup();
-    // handleRecord();
-  }, [router]);
-
-  const setup = () => {
-    if (peer && socket) {
-      peer.on("open", (id) => {
-        setMyId(id);
-        console.log("peer open", roomid, "myid", id);
-        if (roomid) socket.emit("join-room", roomid, id);
-      });
-      navigator.mediaDevices
-        .getUserMedia({
-          video: { width: 1280, height: 720, frameRate: { max: 30 } },
-          audio: true,
-        })
-        .then((stream) => {
-          handleStream(stream);
-          socket.emit("reload");
-        })
-        .catch((err) => {
-          console.error("error:", err);
-        });
-
-      return () => socket.disconnect();
-    }
-  };
-
-  const handleRecord = async () => {
-    peer.on("open", (id) => {
-      console.log("peer open", roomid);
-      if (roomid) socket.emit("join-room", roomid, id);
-    });
+    getAndSet();
 
     navigator.mediaDevices
-      .getDisplayMedia({
-        video: {
-          cursor: "always",
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-        },
+      .getUserMedia({
+        video: true,
+        audio: true,
       })
       .then((stream) => {
-        handleStream(stream);
-        socket.emit("reload");
-      });
+        startCall(stream);
+      })
+      .catch((e) => console.log(e));
+  }, [Router]);
 
-    // const mediaRecorder = new MediaRecorder(stream, {
-    //   mimeType: "video/webm; codecs=vp9",
-    // });
-
-    // console.log(mediaRecorder.ondataavailable);
-    // // mediaRecorder.start();
+  const getAndSet = async () => {
+    const user = await Cookies.get("user");
+    if (user) setUser(JSON.parse(user));
   };
 
-  const handleStream = (stream) => {
-    setStream(stream);
-    // when getting a call
-    peer.on("call", (call) => {
-      call.answer(stream);
-      call.on("stream", (userVideoStream) => {
-        setStreams([
-          ...streams,
-          {
-            stream: userVideoStream,
-            userId: call.peer,
-          },
-        ]);
-        renderStreams();
+  // !start of call
+
+  const startCall = async (stream) => {
+    var peers = {};
+    peer &&
+      user &&
+      peer.on("open", (id) => {
+        socket.emit("join-room", roomId, id, user.username);
+        setMyID(id);
       });
-    });
+    setMyStream(stream);
+    videoRef.current.srcObject = stream;
 
-    //set my video
-    let video = videoRef.current;
-    video.srcObject = stream;
-    video.play();
+    peer &&
+      peer.on("call", (call) => {
+        console.log("got call");
+        call.answer(stream);
 
-    socket.on("user-disconnected", (id, username) => {
-      streams.filter((item) => item.userId !== id);
-      renderStreams();
-    });
-
-    // when new user connects we call the reverse of the first
-    socket.on("user-connected", async (userId) => {
-      console.log(userId, "disconnected");
-      const call = await peer.call(userId, stream);
-
-      call.on("stream", (userVideoStream) => {
-        setStreams([
-          ...streams,
-          {
-            stream: userVideoStream,
-            userId,
-          },
-        ]);
-        renderStreams();
-      });
-      call.on("close", () => {
-        console.log("closed");
-        // video.remove();
+        call.on("stream", (userVideoStream) => {
+          console.log("got stream");
+          setStreams([...streams, userVideoStream]);
+        });
       });
 
-      // peers[userId] = call;
-    });
+    socket &&
+      socket.on("user-connected", (userID, username) => {
+        // connectNewUser(userID, stream);
+        if (peer) {
+          const call = peer.call(userID, stream);
+
+          call.on("stream", (userVideoStream) => {
+            console.log("got stream");
+            setStreams([...streams, userVideoStream]);
+          });
+
+          // call.on("close", () => {
+          //   video.remove();
+          // });
+
+          // peers[userID] = call;
+          // systemMessage(username, true);
+        }
+      });
+
+    // socket && socket.emit("participants");
   };
 
-  const renderStreams = () => {
-    return (
-      streams &&
-      streams.map((vid, index) => (
-        <li key={index}>
-          <Video stream={vid.stream} />
-        </li>
-      ))
-    );
+  // !end of call
+
+  // const connectNewUser = (userID, stream) => {
+
+  // };
+
+  const systemMessage = (username, join = false) => {
+    const date = new Date();
+    var hours = date.getHours();
+    var minutes = date.getMinutes();
+    const format = hours >= 12 ? "PM" : "AM";
+    hours %= 12;
+    hours = hours ? hours : 12;
+    minutes = minutes < 10 ? "0" + minutes : minutes;
+
+    const container = document.querySelector(".main__chat__box");
+    const list = document.createElement("li");
+    list.className = "system-message";
+    list.innerHTML = `<span>${hours}:${minutes}${format}</span><span>${username} has ${
+      join ? "joined" : "left"
+    } the meeting</span>`;
+
+    lists.append(list);
+    container.scrollTop = container.scrollHeight;
   };
 
-  const handleMute = () => {
-    const enabled = stream.getAudioTracks()[0].enabled;
+  const handleVideo = () => {
+    const enabled = myStream.getVideoTracks()[0].enabled;
+    if (enabled) {
+      setIsVideo(false);
+      socket.emit("stop-video");
+      myStream.getVideoTracks()[0].enabled = false;
+    } else {
+      setIsVideo(true);
+      socket.emit("play-video");
+      myStream.getVideoTracks()[0].enabled = true;
+    }
+  };
+  const handleMicrophone = () => {
+    const enabled = myStream.getAudioTracks()[0].enabled;
 
     if (enabled) {
       setIsMic(false);
       socket.emit("mute-mic");
-      stream.getAudioTracks()[0].enabled = false;
+      myStream.getAudioTracks()[0].enabled = false;
     } else {
       setIsMic(true);
       socket.emit("unmute-mic");
-      stream.getAudioTracks()[0].enabled = true;
+      myStream.getAudioTracks()[0].enabled = true;
     }
   };
 
-  const handleVideo = () => {
-    const enabled = stream.getVideoTracks()[0].enabled;
-    if (enabled) {
-      setIsVideo(false);
-      socket.emit("stop-video");
-      stream.getVideoTracks()[0].enabled = false;
-    } else {
-      setIsVideo(true);
-      socket.emit("play-video");
-      stream.getVideoTracks()[0].enabled = true;
-    }
+  const handleInvite = () => {
+    navigator.clipboard
+      .writeText(roomId)
+      .then((e) => message.success("Room invitation code has been copied"));
   };
-  return (
-    <div className="call-screen">
-      <div className="controls">
-        <Tooltip title="End Call">
-          <Button
-            className="btn"
-            danger
-            type="primary"
-            icon={
-              <IoClose
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  fontSize: 25,
+  return user ? (
+    <>
+      <main role="main">
+        <div className="main__left screen-full">
+          <div className="main__videos">
+            <div id="video-grid" ref={gridRef}>
+              <div className="video-container">
+                <video ref={videoRef} muted className="video" autoPlay />
+              </div>
+              {streams.length > 0 &&
+                streams.map((item) => <Video stream={item} />)}
+            </div>
+            <div id="share-screen"></div>
+          </div>
+          <div className="main__controls">
+            <div className="main__controls__block">
+              <div
+                className="main__controls__button mute-btn"
+                onClick={handleMicrophone}
+              >
+                {isMic ? (
+                  <FaMicrophone className="icon" />
+                ) : (
+                  <FaMicrophoneSlash
+                    className="icon"
+                    style={{ color: "#eb534b" }}
+                  />
+                )}
+                {isMic ? <span>Mute</span> : <span>Unmute</span>}
+              </div>
+              <div
+                className="main__controls__button video-btn"
+                onClick={handleVideo}
+              >
+                {isVideo ? (
+                  <FaVideo className="icon" />
+                ) : (
+                  <FaVideoSlash className="icon" style={{ color: "#eb534b" }} />
+                )}
+
+                {isVideo ? <span>Stop Video</span> : <span>Start Video</span>}
+              </div>
+            </div>
+            <div className="main__controls__block mid-block">
+              <div className="main__controls__button" onClick={handleInvite}>
+                <FaUserPlus className="icon" />
+                <span>Invite</span>
+              </div>
+              <div
+                className="main__controls__button users-btn"
+                // onclick="handleScreen(this)"
+                onClick={() => setParticipants(!participants)}
+              >
+                <FaUserFriends className="icon" />
+                <span>Participants</span>
+              </div>
+              <div
+                className="main__controls__button chat-btn"
+                id="chats"
+                // onclick="handleScreen(this)"
+                onClick={() => {
+                  setChats(!chats);
                 }}
-              />
+              >
+                <FaCommentAlt className="icon" />
+                <span>Chat</span>
+              </div>
+            </div>
+            <div className="main__controls__block">
+              <div
+                className="main__controls__button leave-btn"
+                onClick={() => {
+                  myStream.getTracks().forEach(function (track) {
+                    if (track.readyState == "live") {
+                      track.stop();
+                    }
+                  });
+                  Router.replace("/");
+                }}
+              >
+                <span>Leave Meeting</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={
+            chats || participants ? "main__right " : "main__right screen-hide"
+          }
+        >
+          <div
+            className={
+              chats ? "main__right__render" : "main__right__render screen-hide"
             }
-            size={"large"}
-            onClick={() => {
-              stream.getTracks().forEach(function (track) {
-                if (track.readyState == "live") {
-                  track.stop();
-                }
-              });
-              router.replace("/");
-            }}
-          />
-        </Tooltip>
-        <Tooltip title={camera ? "Present Screen" : "Stop Presenting"}>
-          <Button
-            className="btn"
-            size={"large"}
-            type="primary"
-            onClick={() => {
-              setCamera(!camera);
-            }}
-            icon={<MdScreenShare />}
-          ></Button>
-        </Tooltip>
-        <Tooltip title={isVideo ? "Stop Video" : "Start Video"}>
-          <Button
-            className="btn"
-            size={"large"}
-            type="default"
-            onClick={handleVideo}
-            danger={isVideo ? false : true}
-            icon={isVideo ? <FaVideo /> : <FaVideoSlash />}
-          ></Button>
-        </Tooltip>
-        <Tooltip title={isMic ? "Mute" : "Unmute"}>
-          <Button
-            className="btn"
-            size={"large"}
-            type="default"
-            onClick={handleMute}
-            danger={isMic ? false : true}
-            icon={isMic ? <FaMicrophone /> : <FaMicrophoneSlash />}
-          ></Button>
-        </Tooltip>
-      </div>
-      <ul className="videos">
-        <li>
-          <video ref={videoRef} muted className="video" />
-        </li>
-        {renderStreams()}
-      </ul>
-    </div>
-  );
+            id="chat-screen"
+          >
+            <div className="main__header">
+              <h4>Chat Box</h4>
+            </div>
+            <div className="main__chat__box">
+              <ul id="messages"></ul>
+            </div>
+            <form className="main__message__container">
+              <textarea
+                id="chat-message"
+                cols="20"
+                rows="1"
+                placeholder="Type a message here"
+              ></textarea>
+              <button
+                className="main__message__send"
+                type="submit"
+                id="send-btn"
+              >
+                <FaPaperPlane className="icon" />
+              </button>
+            </form>
+          </div>
+          <div
+            className={
+              participants
+                ? "main__right__render"
+                : "main__right__render screen-hide"
+            }
+            id="users-screen"
+          >
+            <div className="main__header">
+              <h4>Participants</h4>
+            </div>
+            <div className="main__users__box">
+              <ul id="users"></ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  ) : null;
 };
 
 export default Room;
@@ -279,5 +308,9 @@ const Video = ({ stream }) => {
     if (localVideo.current) localVideo.current.srcObject = stream;
   }, [stream, localVideo]);
 
-  return <video className="video" ref={localVideo} autoPlay />;
+  return (
+    <div className="video-container">
+      <video className="video" ref={localVideo} autoPlay />
+    </div>
+  );
 };
