@@ -58,11 +58,12 @@ const Room = () => {
   // !start of call
 
   const startCall = async (stream) => {
+    const user = await Cookies.get("user");
     var peers = {};
     peer &&
-      user &&
       peer.on("open", (id) => {
-        socket.emit("join-room", roomId, id, user.username);
+        console.log("join room");
+        socket.emit("join-room", roomId, id, JSON.parse(user).username);
         setMyID(id);
       });
     setMyStream(stream);
